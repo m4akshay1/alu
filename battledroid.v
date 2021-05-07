@@ -22,6 +22,8 @@
 
 
 
+
+
 //FLip Flop
 /*module DFF(clk,in,out);
 	parameter n=1;//width
@@ -153,6 +155,125 @@ endmodule
 
 //Accumulator Register
 */
+/*
+module locMan(opcode, cur_loc, loc_in, gps_loc, next_loc, alb)
+	input [3:0] opcode;		// Current opcode
+	input [15:0] cur_loc;		// Location value from locReg
+	input [15:0] loc_in;		// External input value for coordinates
+	input [15:0] gps_loc;		// Location from GPS device
+	output [15:0] next_loc;		// Next value for locReg
+	output alb;			// Boolean result of comparing cur_loc 
+					//   with either gps_loc or loc_in
+
+always @(*)
+begin
+	case(opcode)
+		4'b0111	: assign next_loc = loc_in;	// TARGET
+		4'b1010	: 	begin			// ATLOC
+			 	assign next_loc = cur_loc;
+				if (loc_in == 0)
+    					begin
+      						 assign alb = (cur_loc == gps_loc)
+    					end
+  				else
+    					begin
+						 assign alb = (loc_in == gps_loc)
+    					end				
+				end
+		4'b1100	: assign next_loc = 0;		// RESET
+		4'b0110 : assign next_loc = loc_in;	// GOTO
+		default	: assign next_loc = cur_loc;	// Everything else
+	endcase
+end
+
+endmodule*/
+
+
+////////
+/*
+module stateMan(cur_state, opcode, next_state)
+// shutdown = 00, standby = 01, attack = 11, goto = 10
+	input [1:0] cur_state;		// Location value from stateReg
+	input [3:0] opcode;		// Current opcode
+	output [1:0] next_state;	// Next value for stateReg
+
+always @(*)
+begin
+	case(opcode)
+		4'b1100 : assign next_state = 00;	// RESET
+		4'b1101 : assign next_state = 00;	// SHUTDOWN
+		4'b0100 : assign next_state = 01;	// STANDBY
+		4'b0101 : assign next_state = 11;	// ATTACK
+		4'b0110 : assign next_state = 10;	// GOTO
+		default : assign next_state = cur_state;	// Everything else
+end
+
+endmodule
+
+////////
+
+module rankMan(cur_rank, opcode, data_in, next_rank)
+	input [7:0] cur_rank;		// Current integer representing rank from rankReg
+	input [3:0] opcode;		// Current opcode
+	input [7:0] data_in;		// Input to be added to rank
+	output [7:0] next_rank;		// Next value for rankReg
+always @(*)
+begin
+	case(opcode)
+		4'b1100 : assign next_rank = 1;				// RESET
+		4'b1000 : assign next_rank = cur_rank + data_in;	// RANK
+		default : assign next_rank = cur_rank;			// Everything else
+end
+
+endmodule
+
+/////////
+
+module battMan(cur_batt, opcode, data_in, next_batt)
+// idle = 10, combat = 11, long_term = 01. Default = 100111.
+	input [5:0] cur_batt;		// Current values from battReg
+	input [3:0] opcode;		// Current opcode
+	input [7:0] data_in;		// Number of battery to shift to
+	output [5:0] next_batt;		// Next value for battReg
+	reg [2:0] next_batt_num;	// Number of next battery to switch to
+					// 001 -> long_term, 011 -> combat, 010 -> idle
+					// 000 -> no change, 111 -> reset to default
+always @(*)
+begin
+	case(opcode)
+		4'b1100 : next_batt_num = 111;		// RESET
+		4'b1101 : next_batt_num = 010;		// SHUTDOWN
+		4'b0100 : next_batt_num = 001;		// STANDBY
+		4'b0101 : next_batt_num = 011;		// ATTACK
+		4'b0110 : next_batt_num = 001;		// GOTO
+		4'b0110 : next_batt_num = data_in;	// BATTERY
+		default : next_batt_num = 000;		// Everything else
+	case (next_batt_num)
+		3'b111	: assign next_batt = 1001111;	// Default values
+		3'b000	: assign next_batt = cur_batt;	// No change
+		3'b001	: assign next_batt = 0111110;	// Will end up with 01 in first position through shifting
+		3'b011	: assign next_batt = 1111001;	// Will end up with 11 in first position through shifting
+		3'b010	: assign next_batt = 1001111;	// Will end up with 11 in first position through shifting
+		default : assign next_batt = cur_batt;	// Catch-all for errors
+end
+
+endmodule*/
+module locMan(opcodeIn, cur_loc, loc_in, gps_loc, next_loc, alb)
+    input [3:0] opcodeIn;        // Current opcode
+    input [15:0] cur_loc;        // Location value from locReg
+    input [15:0] loc_in;        // External input value for coordinates
+    input [15:0] gps_loc;        // Location from GPS device
+    output [15:0] next_loc;        // Next value for locReg
+    output alb;            // Boolean result of comparing cur_loc 
+                    //   with either gps_loc or loc_in
+
+always @(*)
+begin
+    assign next_loc = cur_loc;    // Everything else
+    assign alb = 0;
+end
+
+endmodule
 
 //MUX Multiplexer 16 by 8
 module Mux(channels,select,b);
@@ -181,14 +302,21 @@ wire [7:0] DataIn;
 wire [15:0] GPS;
 wire [3:0] opcode;
 wire [15:0] LocIn;
+
 //----------------------------------
 output [7:0] DataOut;
 reg [7:0] DataOut;
 //----------------------------------
-
+//mux
 wire [15:0][7:0]channels;
 wire [7:0] b;
 
+//locman
+wire[15:0] cur_loc;
+wire[15:0] loc_in;
+wire[15:0] gps_loc;
+wire[15:0] next_loc;
+wire[7:0] alb;
 //wire [1:0] outputADD;
 //wire [1:0] outputAND;
 
@@ -201,6 +329,7 @@ wire [1:0] cur;
 */
 
 Mux mux1(channels,opcode,b);
+locMan loc1(opcode,cur_loc, loc_in, gps_loc, next_loc, alb);
 //DFF ACC1 [1:0] (clk,next,cur);
 
 
