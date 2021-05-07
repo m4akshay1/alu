@@ -1,12 +1,13 @@
 //DFF Module
+//FUCKME
 
-
+/*
 //OpCodes
 `define NOOP  '4b0000 //00=system, 00=NOOP
 `define RESET '4b0001 //00=system, 01=Reset
 `define ADD   '4b0101 //01=Mathematics, 01=ADD
 `define AND   '4b1001 //10=Logic, 01=AND
-
+*/
 // our opcodes
 `define NOOP     '4b0000
 `define RESET    '4b1100
@@ -96,34 +97,6 @@ endmodule
 
 */
 
-module locMan(opcode, cur_loc, loc_in, gps_loc, next_loc, alb)
-	input [3:0] opcode;		// Current opcode
-	input [15:0] cur_loc;		// Location value from locReg
-	input [15:0] loc_in;		// External input value for coordinates
-	input [15:0] gps_loc;		// Location from GPS device
-	output [15:0] next_loc;		// Next value for locReg
-	output alb;			// Boolean result of comparing cur_loc 
-					//   with either gps_loc or loc_in
-
-always @(*)
-begin
-	case(opcode)
-		4'b0111	: 	next_loc = loc_in;	// TARGET
-		4'b1010	: 	begin			// ATLOC
-				next_loc = cur_loc;
-				if (loc_in == 0)
-    					begin
-      						alb = (cur_loc == gps_loc)
-    					end
-  				else
-    					begin
-						alb = (loc_in == gps_loc)
-    					end				
-				end
-		4'b1100	: 	next_loc = 0;		// RESET
-		default	: 	next_loc = cur_loc;	// Everything else
-	endcase
-end
 
 
 
@@ -197,37 +170,69 @@ end
 endmodule
 
 //Breadboard
-module breadboard(DataIn,LocIn,GPS,opcode);
+module breadboard(clk,DataIn,LocIn,GPS,opcode);
 //----------------------------------
-
+input clk;
 input [3:0] opcode;
 input [7:0] DataIn;
 input [15:0] GPS;
+input [15:0] LocIn;
+wire clk;
 wire [7:0] DataIn;
 wire [15:0] GPS;
 wire [3:0] opcode;
+wire [15:0] LocIn;
+//----------------------------------
+output [7:0] DataOut;
+reg [7:0] DataOut;
 //----------------------------------
 
-//----------------------------------
+wire [15:0][7:0]channels;
+wire [7:0] b;
+
+//wire [1:0] outputADD;
+//wire [1:0] outputAND;
+
+/*
+reg [1:0] regA;
+reg [1:0] regB;
+
+reg  [1:0] next;
+wire [1:0] cur;
+*/
+
+Mux mux1(channels,opcode,b);
+//DFF ACC1 [1:0] (clk,next,cur);
 
 
-assign channels[0]=cur;
-assign channels[1]=0;
-assign channels[2]=0;
-assign channels[3]=0;
-assign channels[4]=0;
-assign channels[5]=outputADD;
-assign channels[6]=0;
-assign channels[7]=0;
-assign channels[8]=0;
-assign channels[9]=outputAND;
-assign channels[10]=0;
-assign channels[11]=0;
-assign channels[12]=0;
-assign channels[13]=0;
-assign channels[14]=0;
-assign channels[15]=0;
+assign channels[0]=0;
+assign channels[1]=1;
+assign channels[2]=2;
+assign channels[3]=3;
+assign channels[4]=4;
+assign channels[5]=5;
+assign channels[6]=6;
+assign channels[7]=7;
+assign channels[8]=8;
+assign channels[9]=9;
+assign channels[10]=10;
+assign channels[11]=11;
+assign channels[12]=12;
+assign channels[13]=13;
+assign channels[14]=14;
+assign channels[15]=15;
 
+always @(*)
+begin
+ //regA=A;
+ //regB=cur;
+
+ //assign C=b;
+ //assign next=b;
+end
+
+endmodule
+/*
 always @(*)
 begin
  regA=A;
@@ -238,6 +243,8 @@ begin
 end
 
 endmodule
+*/
+
 
 
 //TEST BENCH
@@ -245,15 +252,18 @@ module testbench();
 
 //Local Variables
    reg clk;
-   reg rst;
-   reg [7:0] inputA;
-   reg [7:0] inputB;
-   wire [7:0] outputC;
+   reg [7:0] DataIn;
+   reg [15:0] LocIn;
+   reg [15:0] GPS;
+   //wire [7:0] outputC;
    reg [3:0] opcode;
-   reg [15:0] count;
+
+   
+
+
 
 // create breadboard
-breadboard bb8(clk,rst,inputA,inputB,outputC,opcode);
+breadboard bb8(clk,DataIn,LocIn,GPS,opcode);
 
 
    //CLOCK
@@ -272,105 +282,23 @@ breadboard bb8(clk,rst,inputA,inputB,outputC,opcode);
     initial begin //Start Output Thread
 	forever
          begin
-		 $display("(ACC:%2b)(OPCODE:%4b)(IN:%2b)(OUT:%2b)",bb8.cur,opcode,inputA,bb8.b);
+		 //$display("(ACC:%2b)(OPCODE:%4b)(IN:%2b)(OUT:%2b)",bb8.cur,opcode,inputA,bb8.b);
+		 $display("Hello World");
 		 #10;
 		 end
 	end
 
-//STIMULOUS
-	initial begin//Start Stimulous Thread
-	#6;	
-	//---------------------------------
-	inputA=2'b00;
+//STIMULOUS  clk,DataIn,LocIn,GPS,opcode
+	//Test input
+	initial begin
+	#6;
+	DataIn =8`b00000000;
+	LocIn = 16`b0000000000000000;
+	GPS =  16`b0000000000000000;
 	opcode=4'b0000;//NO-OP
 	#10; 
-	//---------------------------------
-	inputA=2'b00;
-	opcode=4'b0001;//RESET
-	#10
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NO OP
-	#10;
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NO OP
-	#10;
-	//---------------------------------	
-	inputA=2'b01;
-	opcode=4'b0101;//ADD
-	#10;
-	//---------------------------------
-	inputA=2'b00;
-	opcode=4'b0000;//NOOP
-	#10;
-	//---------------------------------	
-	inputA=2'b01;
-	opcode=4'b0101;//ADD
-	#10
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NOOP
-	#10;
-	//---------------------------------	
-	inputA=2'b01;
-	opcode=4'b0101;//ADD
-	#10
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NOOP
-	#10;
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0001;//RESET
-	#10;
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NOOP
-	#10;
-	//---------------------------------	
-	inputA=2'b11;
-	opcode=4'b0101;//ADD
-	#10
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NOOP
-	#10;
-	//---------------------------------	
-	inputA=2'b10;
-	opcode=4'b1001;//AND
-	#10;
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NOOP
-	#10;
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0001;//Reset
-	#10;
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NOOP
-	#10;
-	//---------------------------------	
-	inputA=2'b01;
-	opcode=4'b0101;//ADD
 	
-	//Uh-oh...it was left in the ADD operation...its an addtion STATE!
-	#10
-	#10
-	#10
-	#10
-	#10
-	#10
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0001;//RESET
-	#10;
-	//---------------------------------	
-	inputA=2'b00;
-	opcode=4'b0000;//NOOP
-	#10
+	
 	
 	$finish;
 	end
