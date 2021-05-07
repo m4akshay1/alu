@@ -173,30 +173,14 @@ module breadboard(DataIn,LocIn,GPS,opcode);
 //----------------------------------
 
 input [3:0] opcode;
-input [3:0] DataIn;
-input [3:0] GPS;
-wire [3:0] DataIn;
-wire [3:0] GPS;
+input [7:0] DataIn;
+input [15:0] GPS;
+wire [7:0] DataIn;
+wire [15:0] GPS;
 wire [3:0] opcode;
 //----------------------------------
-output [1:0] C;
-reg [1:0] C;
+
 //----------------------------------
-
-wire [15:0][1:0]channels;
-wire [1:0] b;
-
-reg [1:0] regA;
-reg [1:0] regB;
-
-reg  [1:0] next;
-wire [1:0] cur;
-
-Mux mux1(channels,opcode,b);
-ADDER add1(regA,regB,outputADD,carry);
-ANDER and1(regA,regB,outputAND);
-
-DFF ACC1 [1:0] (clk,next,cur);
 
 
 assign channels[0]=cur;
