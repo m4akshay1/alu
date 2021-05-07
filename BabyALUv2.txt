@@ -96,6 +96,34 @@ endmodule
 
 */
 
+module locMan(opcode, cur_loc, loc_in, gps_loc, next_loc, alb)
+	input [3:0] opcode;		// Current opcode
+	input [15:0] cur_loc;		// Location value from locReg
+	input [15:0] loc_in;		// External input value for coordinates
+	input [15:0] gps_loc;		// Location from GPS device
+	output [15:0] next_loc;		// Next value for locReg
+	output alb;			// Boolean result of comparing cur_loc 
+					//   with either gps_loc or loc_in
+
+always @(*)
+begin
+	case(opcode)
+		4'b0111	: 	next_loc = loc_in;	// TARGET
+		4'b1010	: 	begin			// ATLOC
+				next_loc = cur_loc;
+				if (loc_in == 0)
+    					begin
+      						alb = (cur_loc == gps_loc)
+    					end
+  				else
+    					begin
+						alb = (loc_in == gps_loc)
+    					end				
+				end
+		4'b1100	: 	next_loc = 0;		// RESET
+		default	: 	next_loc = cur_loc;	// Everything else
+	endcase
+end
 
 
 
